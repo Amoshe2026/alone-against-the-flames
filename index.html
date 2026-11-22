@@ -591,6 +591,13 @@ body::before{
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--line2)}
+/* ---------- 访问计数（第三方，取不到数就整条隐藏，绝不占位） ---------- */
+#hit{margin:24px 0 2px;padding-top:13px;border-top:1px solid var(--line);
+  font-family:var(--sans);font-size:10px;letter-spacing:.13em;color:var(--ink4);
+  display:flex;gap:8px;align-items:baseline;opacity:.7}
+#hit[hidden]{display:none}
+#hit b{font-weight:400;color:var(--ink3);font-variant-numeric:tabular-nums;letter-spacing:.05em}
+#hit .dot{color:var(--line3)}
 </style>
 </head>
 <body>
@@ -633,6 +640,11 @@ body::before{
     <div class="sec" id="secTrail">
       <h3>行程</h3>
       <div id="trailBox" class="trail"></div>
+    </div>
+    <div id="hit" hidden>
+      <span>已翻阅 <b id="vercount_value_site_pv">—</b> 次</span>
+      <span class="dot">·</span>
+      <span>来客 <b id="vercount_value_site_uv">—</b> 人</span>
     </div>
   </aside>
 
@@ -3036,6 +3048,21 @@ function bindKeys(){
   });
 }
 boot();
+</script>
+<!-- 访问计数：第三方服务，加载不到就整条不显示，不影响游戏本体 -->
+<script defer src="https://events.vercount.one/js"></script>
+<script>
+(function(){
+  var box = document.getElementById("hit"), n = 0;
+  var t = setInterval(function(){
+    var pv = document.getElementById("vercount_value_site_pv");
+    var uv = document.getElementById("vercount_value_site_uv");
+    var ok = pv && uv && /^[1-9]\d*$/.test(pv.textContent.trim())
+             && /^[1-9]\d*$/.test(uv.textContent.trim());
+    if(ok){ box.hidden = false; clearInterval(t); }
+    else if(++n > 48){ clearInterval(t); }
+  }, 250);
+})();
 </script>
 </body>
 </html>
