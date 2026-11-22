@@ -177,6 +177,9 @@ body::before{
 /* 顶部亮边：把"这是操作区"和"这是正文"在视觉上彻底分开 */
 #actsWrap::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;z-index:2;pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(255,145,71,.36) 20%,rgba(255,145,71,.36) 80%,transparent)}
+/* 模式页要整块收起（选择就在正文卡片里）。ID 上的 display:flex 会盖掉 [hidden]
+   的默认 display:none，所以必须显式写一条 —— 否则 hidden 形同虚设，面板照样占 118px。 */
+#actsWrap[hidden]{display:none}
 #acts{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
   scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
 #acts::-webkit-scrollbar{width:10px}
@@ -454,14 +457,30 @@ body::before{
 .modePick{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin:20px 0 4px}
 @media (max-width:780px){.modePick{grid-template-columns:1fr}}
 .modeCard{
-  border:1px solid var(--line);border-radius:6px;padding:15px 16px 13px;
+  position:relative;display:flex;flex-direction:column;
+  border:1px solid var(--line);border-radius:6px;padding:15px 16px 12px;
   background:linear-gradient(180deg,rgba(30,23,18,.72),rgba(18,14,11,.5));
+  cursor:pointer;transition:border-color .16s,background .16s,transform .16s;
+  -webkit-tap-highlight-color:transparent;
 }
+/* 卡片即入口：hover / focus / 底部行动行三重提示，触屏没有 hover 也看得出能点 */
+.modeCard:hover{border-color:var(--line3);
+  background:linear-gradient(180deg,rgba(41,31,24,.84),rgba(23,18,14,.62));transform:translateY(-1px)}
+.modeCard:active{transform:translateY(0)}
+.modeCard:focus-visible{outline:2px solid var(--ember2);outline-offset:2px}
+/* 行动行钉在卡底：两卡要点行数不同（左卡第三条会折行），不钉底的话
+   两行橙色提示一高一低，看着像排版没对齐。 */
+.modeCard .go{display:flex;align-items:center;gap:7px;margin-top:auto;padding-top:11px;
+  border-top:1px solid rgba(70,52,37,.55);font-family:var(--sans);font-size:10.5px;
+  letter-spacing:.16em;color:var(--ember2);transition:color .16s}
+.modeCard .go i{font-style:normal;transition:transform .16s}
+.modeCard:hover .go{color:var(--ember)}
+.modeCard:hover .go i{transform:translateX(3px)}
 .modeCard h4{font-family:var(--serif);font-size:17px;font-weight:400;color:var(--ink);
   margin:0 0 2px;letter-spacing:.06em}
 .modeCard .en{font-family:var(--sans);font-size:9px;letter-spacing:.24em;color:var(--ink4);
   text-transform:uppercase;margin-bottom:11px}
-.modeCard ul{list-style:none;margin:0;padding:0}
+.modeCard ul{list-style:none;margin:0 0 12px;padding:0}
 .modeCard li{font-family:var(--sans);font-size:11.5px;line-height:1.9;color:var(--ink3);
   padding-left:13px;position:relative}
 .modeCard li::before{content:"";position:absolute;left:2px;top:.85em;width:5px;height:1px;
@@ -618,7 +637,7 @@ body::before{
     </div>
     <div class="sec" id="secStart" hidden>
       <h3>尚未开始</h3>
-      <div class="trail">在右侧选一种玩法。<br>经典模式一步步建立调查员；故事模式直接给你一名调查员，检定成败由你决定。</div>
+      <div class="trail">点右侧任一张卡开始。<br>经典模式一步步建立调查员；故事模式直接给你一名调查员，检定成败由你决定。</div>
     </div>
     <div class="sec" id="secStats">
       <h3>状态 <span id="statHint"></span></h3>
@@ -878,16 +897,18 @@ function renderModePick(){
     '<div class="num"><b>开始之前</b></div>'
     + '<div id="bodyText">'
     + '<div class="modePick">'
-    + '<div class="modeCard"><h4>经典模式</h4><div class="en">Classic</div><ul>'
+    + '<div class="modeCard" role="button" tabindex="0" data-mode="classic" aria-label="选择经典模式">'
+    + '<h4>经典模式</h4><div class="en">Classic</div><ul>'
     + '<li><b>完整的人物建立流程</b>：属性、职业、本职技能、兴趣，每一步都附规则与算式</li>'
     + '<li>检定<b>由骰子决定</b>；失败之后可以选择强行改判</li>'
     + '<li>任何一步都能<b>本页随机</b>或<b>整张卡随机</b>，不想算数值也不必自己填</li>'
-    + '</ul></div>'
-    + '<div class="modeCard"><h4>故事模式</h4><div class="en">Story</div><ul>'
+    + '</ul><span class="go">从建立人物开始<i>→</i></span></div>'
+    + '<div class="modeCard" role="button" tabindex="0" data-mode="story" aria-label="选择故事模式">'
+    + '<h4>故事模式</h4><div class="en">Story</div><ul>'
     + '<li><b>跳过车卡</b>，直接得到一名完整的随机调查员</li>'
     + '<li>所有检定的<b>成败由你决定</b>，不掷骰</li>'
     + '<li>战斗里你的攻击与闪避一律命中；耐久与理智仍会真的掉，故事才有分量</li>'
-    + '</ul></div>'
+    + '</ul><span class="go">不车卡，直接上路<i>→</i></span></div>'
     + '</div>'
     + '<div class="stmt" style="margin-top:18px"><i class="rtag">区别</i>'
     + '两种模式的故事、条目与结局完全相同，只差“谁来定生死”。'
@@ -898,24 +919,24 @@ function renderModePick(){
   $("rollBox").innerHTML = "";
   $("quickSlot").innerHTML = "";
   $("scroll").scrollTop = 0;
-  $("actsTitle").innerHTML = "选择方式"
-    + '<span class="kb">按 1–2 或 ↑↓ 选择</span>';
-  $("actsBox").innerHTML =
-    '<button class="choice skill" id="modeClassic"><span class="k">壹</span>'
-    + '<span class="lbl"><span>经典模式 —— 从建立人物开始</span>'
-    + '<span class="sub">属性、职业、技能一步步填，检定交给骰子</span></span></button>'
-    + '<button class="choice" id="modeStory"><span class="k">贰</span>'
-    + '<span class="lbl"><span>故事模式 —— 不车卡，成败自选</span>'
-    + '<span class="sub">直接给一名调查员，所有检定由你说了算</span></span></button>';
-  $("modeClassic").onclick = ()=>{
-    S.mode = "classic"; S.story = false;
-    toast("经典模式：先建立你的调查员");
-    go(1);
-  };
-  $("modeStory").onclick = ()=>{
-    S.mode = "story"; S.story = true;
-    startStory();
-  };
+  /* 卡片本身就是入口 —— 下方不再另起一组同名按钮，同一件事不该让玩家看两遍。
+     整块可点，键盘走 Tab + Enter（bindKeys 把 .modeCard 一并纳入了候选）。 */
+  Array.prototype.forEach.call($("bodyText").querySelectorAll(".modeCard"), card=>{
+    card.onclick = ()=>{
+      if(card.dataset.mode === "classic"){
+        S.mode = "classic"; S.story = false;
+        toast("经典模式：先建立你的调查员");
+        go(1);
+      }else{
+        S.mode = "story"; S.story = true;
+        startStory();
+      }
+    };
+  });
+  /* 操作区整块收起：选择全在正文里，下面留一块空面板只会让人以为还有东西没点。 */
+  $("actsTitle").innerHTML = "";
+  $("actsBox").innerHTML = "";
+  $("actsWrap").hidden = true;
   const mh = $("moreHint"); if(mh) mh.classList.remove("on");
   drawSide();
   updateScrollCue();
@@ -924,12 +945,19 @@ function renderModePick(){
 /* ---------- 主渲染 ---------- */
 let pending = null;   // 当前节点待执行的动作
 let CUR = null;       // 当前节点对象
+/* 模式页收起了整个操作区；除它以外任何一页都要有操作区，统一在这里还回来，
+   免得某个分支忘了恢复，玩家进正文后发现下面空着、按钮点不到。 */
+function showActs(){
+  const aw = $("actsWrap");
+  if(aw && aw.hidden) aw.hidden = false;
+}
 /* 特殊页局部重绘。左栏要一起刷新 —— 车卡每一步都在改属性/技能/职业，
    只重绘中间那一块，侧栏就会一直停在"尚未骰出属性"。 */
 function refreshSp(){
   if(CUR && CUR.sp){ renderSpecial(CUR); drawSide(); }
 }
 function render(){
+  showActs();   /* 模式页会把操作区整块收起，进正文必须还回来 */
   const node = N[S.cur];
   const stage = $("entry");
 
@@ -1280,7 +1308,7 @@ function drawSide(){
       ss.innerHTML = '<h3>' + (S.mode ? "正在建立" : "尚未开始") + '</h3>'
         + '<div class="trail">' + (S.mode
             ? "把数值分进八项属性，确认之后就能上路。<br>左侧会随分配实时更新。"
-            : "在右侧选一种玩法。<br>经典模式一步步建立调查员；故事模式直接给你一名调查员，检定成败由你决定。")
+            : "点右侧任一张卡开始。<br>经典模式一步步建立调查员；故事模式直接给你一名调查员，检定成败由你决定。")
         + '</div>';
     }
   }
@@ -1692,6 +1720,7 @@ const SP = {};
 
 /* ---------- 通用 UI 渲染 ---------- */
 function renderSpecial(node){
+  showActs();
   const sp = $("spBox");
   sp.innerHTML = "";
   const fn = SP[node.sp];
@@ -3025,7 +3054,9 @@ function bindKeys(){
   addEventListener("keydown", e=>{
     if(e.metaKey || e.ctrlKey || e.altKey) return;
     if(/^(INPUT|TEXTAREA)$/.test((document.activeElement||{}).tagName||"")) return;
-    const btns = Array.prototype.slice.call(document.querySelectorAll("#actsBox .choice"));
+    /* 模式页没有操作按钮，候选退回正文里的两张卡：键盘 1/2 照样能选 */
+    const btns = Array.prototype.slice.call(
+      document.querySelectorAll("#actsBox .choice, #entry .modeCard"));
     if(!btns.length) return;
     if(/^[1-9]$/.test(e.key)){
       const b = btns[parseInt(e.key,10)-1];
@@ -3041,6 +3072,11 @@ function bindKeys(){
       btns[n].focus();
       return;
     }
+    /* role=button 的 div 不会自己响应回车，得手动接一手 */
+    if((e.key === "Enter" || e.key === " ") && document.activeElement
+       && document.activeElement.classList.contains("modeCard")){
+      e.preventDefault(); document.activeElement.click(); return;
+    }
     if((e.key === "Enter" || e.key === " ") && btns.length === 1
        && btns.indexOf(document.activeElement) < 0){
       e.preventDefault(); btns[0].click();
@@ -3049,19 +3085,33 @@ function bindKeys(){
 }
 boot();
 </script>
-<!-- 访问计数：第三方服务，加载不到就整条不显示，不影响游戏本体 -->
-<script defer src="https://events.vercount.one/js"></script>
+<!-- 访问计数：第三方服务，加载不到就整条不显示，不影响游戏本体。
+     必须等 load 之后再动态注入 —— 实验证过：直接写 defer/同步标签，一旦这个域名
+     连不上（离线打开、DNS 污染、被墙），load 事件会被拖到超时，整个页面的就绪信号失守。 -->
 <script>
 (function(){
-  var box = document.getElementById("hit"), n = 0;
-  var t = setInterval(function(){
-    var pv = document.getElementById("vercount_value_site_pv");
-    var uv = document.getElementById("vercount_value_site_uv");
-    var ok = pv && uv && /^[1-9]\d*$/.test(pv.textContent.trim())
-             && /^[1-9]\d*$/.test(uv.textContent.trim());
-    if(ok){ box.hidden = false; clearInterval(t); }
-    else if(++n > 48){ clearInterval(t); }
-  }, 250);
+  var box = document.getElementById("hit");
+  if(!box) return;
+  var n = 0;
+  function poll(){
+    var t = setInterval(function(){
+      var pv = document.getElementById("vercount_value_site_pv");
+      var uv = document.getElementById("vercount_value_site_uv");
+      var ok = pv && uv && /^[1-9]\d*$/.test(pv.textContent.trim())
+               && /^[1-9]\d*$/.test(uv.textContent.trim());
+      if(ok){ box.hidden = false; clearInterval(t); }
+      else if(++n > 48){ clearInterval(t); }
+    }, 250);
+  }
+  function inject(){
+    var s = document.createElement("script");
+    s.src = "https://events.vercount.one/js";
+    s.async = true;
+    (document.head || document.documentElement).appendChild(s);
+    poll();
+  }
+  if(document.readyState === "complete") inject();
+  else addEventListener("load", inject, {once:true});
 })();
 </script>
 </body>
